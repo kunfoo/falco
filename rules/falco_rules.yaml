@@ -440,6 +440,9 @@
 - list: shell_config_directories
   items: [/etc/zsh]
 
+- macro: user_known_shell_config_modify_conditions
+  condition: (never_true)
+
 - rule: Modify Shell Configuration File
   desc: Detect attempt to modify shell configuration files
   condition: >
@@ -449,6 +452,7 @@
      fd.directory in (shell_config_directories))
     and not proc.name in (shell_binaries)
     and not exe_running_docker_save
+    and not user_known_shell_config_modify_conditions
   output: >
     a shell configuration file has been modified (user=%user.name user_loginuid=%user.loginuid command=%proc.cmdline pcmdline=%proc.pcmdline file=%fd.name container_id=%container.id image=%container.image.repository)
   priority:
@@ -462,6 +466,9 @@
 - macro: consider_shell_config_reads
   condition: (never_true)
 
+- macro: user_known_shell_config_read_conditions
+  condition: (never_true)
+
 - rule: Read Shell Configuration File
   desc: Detect attempts to read shell configuration files by non-shell programs
   condition: >
@@ -470,7 +477,8 @@
     (fd.filename in (shell_config_filenames) or
      fd.name in (shell_config_files) or
      fd.directory in (shell_config_directories)) and
-    (not proc.name in (shell_binaries))
+    (not proc.name in (shell_binaries)) and
+    not user_known_shell_config_read_conditions
   output: >
     a shell configuration file was read by a non-shell program (user=%user.name user_loginuid=%user.loginuid command=%proc.cmdline file=%fd.name container_id=%container.id image=%container.image.repository)
   priority:
@@ -1243,9 +1251,14 @@
     and not avinetworks_supervisor_writing_ssh
     and not multipath_writing_conf
 
+- macro: user_known_write_below_etc_conditions
+  condition: (never_true)
+
 - rule: Write below etc
   desc: an attempt to write to any file below /etc
-  condition: write_etc_common
+  condition: >
+    write_etc_common and
+    not user_known_write_below_etc_conditions
   output: "File below /etc opened for writing (user=%user.name user_loginuid=%user.loginuid command=%proc.cmdline parent=%proc.pname pcmdline=%proc.pcmdline file=%fd.name program=%proc.name gparent=%proc.aname[2] ggparent=%proc.aname[3] gggparent=%proc.aname[4] container_id=%container.id image=%container.image.repository)"
   priority: ERROR
   tags: [filesystem, mitre_persistence]
